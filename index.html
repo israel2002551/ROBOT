@@ -4,21 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LISA Manual Control</title>
+  <link rel="icon" href="data:,">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #111316;
-      --panel: #1c2026;
-      --panel-2: #242a31;
-      --text: #f2f5f7;
-      --muted: #9ca8b3;
-      --line: #363e48;
-      --accent: #45c486;
-      --danger: #ef5d5d;
-      --warn: #f0b84f;
-      --button: #2c3440;
-      --button-active: #35634d;
+      --bg: #0d1014;
+      --panel: #171c22;
+      --panel-2: #202833;
+      --field: #10151b;
+      --text: #f5f7fa;
+      --muted: #93a0ad;
+      --line: #2f3945;
+      --line-strong: #4a5664;
+      --accent: #4ed69a;
+      --accent-2: #5eb7ff;
+      --danger: #ff6464;
+      --warn: #ffc65a;
+      --button: #242d38;
+      --button-active: #24533d;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
     }
 
     * {
@@ -28,42 +33,76 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(78, 214, 154, 0.14), transparent 30rem),
+        linear-gradient(135deg, #0d1014 0%, #121821 48%, #0d1014 100%);
       color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       letter-spacing: 0;
     }
 
     main {
-      width: min(1180px, calc(100vw - 28px));
+      width: min(1220px, calc(100vw - 28px));
       margin: 0 auto;
-      padding: 22px 0 28px;
+      padding: 24px 0 30px;
     }
 
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 18px;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 6px 2px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(26px, 4vw, 42px);
+      font-size: clamp(28px, 4vw, 46px);
       line-height: 1;
-      font-weight: 800;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
     }
 
     h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
+      margin: 0;
+      font-size: 17px;
       font-weight: 700;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 5px 10px;
+      font-size: 12px;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.03);
     }
 
     label {
       display: grid;
-      gap: 6px;
+      gap: 7px;
       color: var(--muted);
       font-size: 13px;
       min-width: 0;
@@ -77,22 +116,31 @@
     input[type="text"],
     input[type="number"] {
       width: 100%;
-      min-height: 42px;
+      min-height: 44px;
       border: 1px solid var(--line);
       border-radius: 6px;
-      background: #15191e;
+      background: var(--field);
       color: var(--text);
       padding: 0 12px;
       outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(94, 183, 255, 0.12);
+      background: #121922;
     }
 
     input[type="range"] {
       width: 100%;
       accent-color: var(--accent);
+      cursor: pointer;
     }
 
     button {
-      min-height: 44px;
+      min-height: 46px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: var(--button);
@@ -100,41 +148,74 @@
       padding: 0 14px;
       cursor: pointer;
       white-space: nowrap;
+      font-weight: 700;
+      transition: transform 120ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
     }
 
     button:hover {
       border-color: var(--accent);
+      background: #2c3744;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
     }
 
     button.primary {
       background: var(--button-active);
       border-color: var(--accent);
+      color: #ebfff5;
     }
 
     button.danger {
-      background: #4a2629;
-      border-color: #864047;
+      background: #51282d;
+      border-color: #9f4e56;
+      color: #ffecec;
+    }
+
+    button.soft {
+      background: #1e3444;
+      border-color: #33566f;
     }
 
     button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .status {
-      min-width: 128px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 144px;
       border: 1px solid var(--line);
       border-radius: 999px;
-      padding: 9px 14px;
+      padding: 10px 15px;
       color: var(--warn);
       text-align: center;
       font-weight: 700;
       font-size: 13px;
+      background: rgba(255, 198, 90, 0.08);
+    }
+
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 16px currentColor;
     }
 
     .status.online {
       color: var(--accent);
       border-color: var(--accent);
+      background: rgba(78, 214, 154, 0.08);
     }
 
     .grid {
@@ -146,15 +227,21 @@
     section {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
-      padding: 16px;
+      background: rgba(23, 28, 34, 0.92);
+      box-shadow: var(--shadow);
+      padding: 18px;
       min-width: 0;
+      backdrop-filter: blur(12px);
+    }
+
+    .link-section {
+      border-color: rgba(94, 183, 255, 0.24);
     }
 
     .broker-grid {
       display: grid;
-      grid-template-columns: 2fr 1fr 1.5fr auto auto;
-      gap: 10px;
+      grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) minmax(190px, 1.3fr) auto auto;
+      gap: 11px;
       align-items: end;
     }
 
@@ -162,6 +249,25 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
+    }
+
+    .move-button {
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+
+    .move-button span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .move-button.sent {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(78, 214, 154, 0.22), rgba(36, 83, 61, 0.86));
+      box-shadow: inset 0 0 0 1px rgba(78, 214, 154, 0.18), 0 12px 32px rgba(0, 0, 0, 0.28);
     }
 
     .wide {
@@ -178,12 +284,40 @@
       gap: 12px;
     }
 
+    .control-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .slider-card {
+      display: grid;
+      gap: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+    }
+
+    .slider-card label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
     .servo-row {
       display: grid;
       grid-template-columns: 130px minmax(120px, 1fr) 54px;
       gap: 12px;
       align-items: center;
-      min-height: 34px;
+      min-height: 38px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 9px;
+    }
+
+    .servo-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
     }
 
     .servo-row span:first-child {
@@ -192,19 +326,18 @@
     }
 
     .log {
-      height: 180px;
+      height: 190px;
       overflow: auto;
-      background: #0d1013;
+      background: rgba(8, 11, 14, 0.88);
       border: 1px solid var(--line);
       border-radius: 6px;
-      padding: 10px;
+      padding: 12px;
       color: #d3d9df;
       font: 13px/1.45 Consolas, Monaco, monospace;
       white-space: pre-wrap;
     }
 
     @media (max-width: 860px) {
-      header,
       .broker-grid,
       .grid {
         grid-template-columns: 1fr;
@@ -212,6 +345,7 @@
 
       header {
         display: grid;
+        align-items: start;
       }
 
       .movement-grid {
@@ -220,7 +354,11 @@
 
       .servo-row {
         grid-template-columns: 1fr;
-        gap: 5px;
+        gap: 6px;
+      }
+
+      .status {
+        width: 100%;
       }
     }
   </style>
@@ -228,12 +366,18 @@
 <body>
   <main>
     <header>
-      <h1>LISA Manual Control</h1>
+      <div class="brand">
+        <h1>LISA Manual Control</h1>
+        <p class="subtitle">Raspberry Pi 2 / Master ESP32 / ESP32-C3</p>
+      </div>
       <div id="status" class="status">Disconnected</div>
     </header>
 
-    <section>
-      <h2>MQTT Link</h2>
+    <section class="link-section">
+      <div class="section-head">
+        <h2>MQTT Link</h2>
+        <span class="pill">broker.emqx.io</span>
+      </div>
       <div class="broker-grid">
         <label>
           Broker WebSocket URL
@@ -254,30 +398,42 @@
 
     <div class="grid" style="margin-top: 14px;">
       <section>
-        <h2>Movement</h2>
-        <div class="servo-list">
-          <label>
-            Speed <span class="readout"><span id="speedValue">70</span>%</span>
+        <div class="section-head">
+          <h2>Movement</h2>
+          <span class="pill">topic: lisa/pi2/cmd</span>
+        </div>
+        <div class="control-stack">
+          <div class="slider-card">
+            <label>
+              <span>Speed</span>
+              <span class="readout"><span id="speedValue">70</span>%</span>
+            </label>
             <input id="speed" type="range" min="0" max="100" value="70">
-          </label>
-          <label>
-            Track X <span class="readout"><span id="trackValue">0</span>%</span>
-            <input id="trackX" type="range" min="-100" max="100" value="0">
-          </label>
-          <div class="movement-grid">
-            <button data-move="walk">Walk</button>
-            <button data-move="dance">Dance</button>
-            <button data-move="wave">Wave</button>
-            <button data-move="bow">Bow</button>
-            <button data-move="hero">Hero</button>
-            <button data-move="idle" class="danger">Stop</button>
           </div>
-          <button id="sendTrackBtn">Send Track Only</button>
+          <div class="slider-card">
+            <label>
+              <span>Track X</span>
+              <span class="readout"><span id="trackValue">0</span>%</span>
+            </label>
+            <input id="trackX" type="range" min="-100" max="100" value="0">
+          </div>
+          <div class="movement-grid">
+            <button data-move="walk" class="move-button primary">Walk<span>legs</span></button>
+            <button data-move="dance" class="move-button">Dance<span>motion</span></button>
+            <button data-move="wave" class="move-button">Wave<span>left arm</span></button>
+            <button data-move="bow" class="move-button">Bow<span>pose</span></button>
+            <button data-move="hero" class="move-button">Hero<span>pose</span></button>
+            <button data-move="idle" class="move-button danger">Stop<span>idle</span></button>
+          </div>
+          <button id="sendTrackBtn" class="soft">Send Track Only</button>
         </div>
       </section>
 
       <section>
-        <h2>Upper Body Servos</h2>
+        <div class="section-head">
+          <h2>Upper Body Servos</h2>
+          <span class="pill">15s manual hold</span>
+        </div>
         <div id="servoList" class="servo-list"></div>
         <div class="movement-grid" style="margin-top: 14px;">
           <button id="sendServosBtn" class="primary">Send Pose</button>
@@ -287,7 +443,10 @@
       </section>
 
       <section class="wide">
-        <h2>Command Log</h2>
+        <div class="section-head">
+          <h2>Command Log</h2>
+          <span class="pill">latest first</span>
+        </div>
         <div id="log" class="log"></div>
       </section>
     </div>
@@ -408,6 +567,9 @@
 
     function sendMove(move) {
       const speed = move === "idle" ? 0 : Number(speedEl.value);
+      document.querySelectorAll("[data-move]").forEach((button) => {
+        button.classList.toggle("sent", button.dataset.move === move);
+      });
       publish({
         move,
         speed,
