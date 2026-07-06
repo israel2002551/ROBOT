@@ -337,8 +337,49 @@
       white-space: pre-wrap;
     }
 
+    .camera-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .camera-view {
+      position: relative;
+      min-height: 300px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #080b0e;
+    }
+
+    .camera-view img {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      display: block;
+      object-fit: cover;
+    }
+
+    .camera-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .camera-controls {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
     @media (max-width: 860px) {
       .broker-grid,
+      .camera-panel,
       .grid {
         grid-template-columns: 1fr;
       }
@@ -444,6 +485,27 @@
 
       <section class="wide">
         <div class="section-head">
+          <h2>Camera Field</h2>
+          <span class="pill">Pi stream</span>
+        </div>
+        <div class="camera-panel">
+          <div class="camera-view">
+            <img id="cameraFeed" alt="">
+            <div id="cameraEmpty" class="camera-empty">Start the Pi camera stream to see LISA's view.</div>
+          </div>
+          <div class="camera-controls">
+            <label>
+              Camera Stream URL
+              <input id="cameraUrl" type="text" value="http://raspberrypi2.local:8090/camera.mjpg" autocomplete="off">
+            </label>
+            <button id="startCameraBtn" class="primary">Start Camera View</button>
+            <button id="stopCameraBtn">Stop Camera View</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="wide">
+        <div class="section-head">
           <h2>Command Log</h2>
           <span class="pill">latest first</span>
         </div>
@@ -465,6 +527,9 @@
     const trackXEl = document.getElementById("trackX");
     const trackValueEl = document.getElementById("trackValue");
     const servoListEl = document.getElementById("servoList");
+    const cameraUrlEl = document.getElementById("cameraUrl");
+    const cameraFeedEl = document.getElementById("cameraFeed");
+    const cameraEmptyEl = document.getElementById("cameraEmpty");
 
     const servoDefaults = {
       neck: 90,
@@ -599,6 +664,23 @@
       });
     }
 
+    function startCameraView() {
+      const url = cameraUrlEl.value.trim();
+      if (!url) {
+        log("Camera URL is empty.");
+        return;
+      }
+      cameraFeedEl.src = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+      cameraEmptyEl.style.display = "none";
+      log(`Camera view opened: ${url}`);
+    }
+
+    function stopCameraView() {
+      cameraFeedEl.removeAttribute("src");
+      cameraEmptyEl.style.display = "grid";
+      log("Camera view stopped.");
+    }
+
     function buildServoControls() {
       Object.keys(servoDefaults).forEach((key) => {
         const row = document.createElement("div");
@@ -637,6 +719,8 @@
     });
 
     document.getElementById("sendServosBtn").addEventListener("click", sendServoPose);
+    document.getElementById("startCameraBtn").addEventListener("click", startCameraView);
+    document.getElementById("stopCameraBtn").addEventListener("click", stopCameraView);
     document.getElementById("homeServosBtn").addEventListener("click", () => {
       setServoPose(servoDefaults);
       sendServoPose();
