@@ -3,756 +3,348 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LISA Manual Control</title>
+  <title>LISA Control</title>
   <link rel="icon" href="data:,">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0d1014;
-      --panel: #171c22;
-      --panel-2: #202833;
-      --field: #10151b;
-      --text: #f5f7fa;
-      --muted: #93a0ad;
-      --line: #2f3945;
-      --line-strong: #4a5664;
-      --accent: #4ed69a;
-      --accent-2: #5eb7ff;
-      --danger: #ff6464;
-      --warn: #ffc65a;
-      --button: #242d38;
-      --button-active: #24533d;
-      --shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+      --bg:#0d1014; --panel:#171c22; --field:#10151b; --line:#33404d;
+      --text:#f5f7fa; --muted:#9aa7b4; --green:#4ed69a; --blue:#5eb7ff;
+      --red:#ff6464; --yellow:#ffc65a;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing:border-box }
     body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at top left, rgba(78, 214, 154, 0.14), transparent 30rem),
-        linear-gradient(135deg, #0d1014 0%, #121821 48%, #0d1014 100%);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      letter-spacing: 0;
+      margin:0; min-height:100vh; color:var(--text);
+      font-family:Inter,system-ui,sans-serif;
+      background:radial-gradient(circle at top left,#173228,var(--bg) 34rem);
     }
-
-    main {
-      width: min(1220px, calc(100vw - 28px));
-      margin: 0 auto;
-      padding: 24px 0 30px;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 16px;
-      padding: 6px 2px;
-    }
-
-    .brand {
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(28px, 4vw, 46px);
-      line-height: 1;
-      font-weight: 850;
-      letter-spacing: 0;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 700;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .pill {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      padding: 5px 10px;
-      font-size: 12px;
-      line-height: 1;
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    label {
-      display: grid;
-      gap: 7px;
-      color: var(--muted);
-      font-size: 13px;
-      min-width: 0;
-    }
-
-    input,
-    button {
-      font: inherit;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--field);
-      color: var(--text);
-      padding: 0 12px;
-      outline: none;
-      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-    }
-
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-      border-color: var(--accent-2);
-      box-shadow: 0 0 0 3px rgba(94, 183, 255, 0.12);
-      background: #121922;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    button {
-      min-height: 46px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--button);
-      color: var(--text);
-      padding: 0 14px;
-      cursor: pointer;
-      white-space: nowrap;
-      font-weight: 700;
-      transition: transform 120ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
-    }
-
-    button:hover {
-      border-color: var(--accent);
-      background: #2c3744;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
-      transform: translateY(-1px);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    button.primary {
-      background: var(--button-active);
-      border-color: var(--accent);
-      color: #ebfff5;
-    }
-
-    button.danger {
-      background: #51282d;
-      border-color: #9f4e56;
-      color: #ffecec;
-    }
-
-    button.soft {
-      background: #1e3444;
-      border-color: #33566f;
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-width: 144px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 10px 15px;
-      color: var(--warn);
-      text-align: center;
-      font-weight: 700;
-      font-size: 13px;
-      background: rgba(255, 198, 90, 0.08);
-    }
-
-    .status::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-      box-shadow: 0 0 16px currentColor;
-    }
-
-    .status.online {
-      color: var(--accent);
-      border-color: var(--accent);
-      background: rgba(78, 214, 154, 0.08);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
+    main { width:min(1200px,calc(100% - 24px)); margin:auto; padding:22px 0 }
+    header,.head,.row { display:flex; align-items:center; justify-content:space-between; gap:12px }
+    header { margin-bottom:14px }
+    h1,h2,p { margin:0 }
+    h1 { font-size:clamp(28px,4vw,44px) }
+    h2 { font-size:18px }
+    .muted,label { color:var(--muted) }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px }
     section {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(23, 28, 34, 0.92);
-      box-shadow: var(--shadow);
-      padding: 18px;
-      min-width: 0;
-      backdrop-filter: blur(12px);
+      padding:17px; border:1px solid var(--line); border-radius:10px;
+      background:rgba(23,28,34,.95);
     }
-
-    .link-section {
-      border-color: rgba(94, 183, 255, 0.24);
+    .wide { grid-column:1/-1 }
+    .head { margin-bottom:14px }
+    .fields { display:grid; grid-template-columns:2fr 1fr 1fr auto auto; gap:10px; align-items:end }
+    label { display:grid; gap:6px; font-size:13px }
+    input,button { font:inherit }
+    input[type=text],input[type=number] {
+      width:100%; min-height:42px; padding:0 10px; color:var(--text);
+      background:var(--field); border:1px solid var(--line); border-radius:6px;
     }
-
-    .broker-grid {
-      display: grid;
-      grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) minmax(190px, 1.3fr) auto auto;
-      gap: 11px;
-      align-items: end;
+    input[type=range] { width:100%; accent-color:var(--green) }
+    button {
+      min-height:44px; padding:0 13px; border:1px solid var(--line);
+      border-radius:6px; color:var(--text); background:#26313d;
+      font-weight:750; cursor:pointer;
     }
-
-    .movement-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+    button:hover { border-color:var(--green) }
+    button:disabled { opacity:.45; cursor:not-allowed }
+    .primary { background:#24533d; border-color:var(--green) }
+    .danger { background:#632c32; border-color:var(--red) }
+    .status {
+      padding:9px 14px; border:1px solid var(--yellow); border-radius:999px;
+      color:var(--yellow); font-weight:700;
     }
-
-    .move-button {
-      min-height: 58px;
-      display: grid;
-      align-content: center;
-      gap: 3px;
+    .status.online { color:var(--green); border-color:var(--green) }
+    .buttons { display:grid; grid-template-columns:repeat(3,1fr); gap:9px }
+    .buttons button { min-height:54px }
+    .slider { padding:10px; margin-bottom:10px; border:1px solid #29333e; border-radius:7px }
+    .servo-list { display:grid; gap:8px; max-height:520px; overflow:auto }
+    .servo {
+      display:grid; grid-template-columns:135px 1fr 52px; gap:10px;
+      align-items:center; padding-bottom:7px; border-bottom:1px solid #27313b;
     }
-
-    .move-button span {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 600;
+    .servo span:first-child { color:var(--muted); font-size:13px }
+    .readout { color:var(--green); font-weight:700 }
+    .notice {
+      margin-bottom:12px; padding:10px; border-left:3px solid var(--yellow);
+      background:rgba(255,198,90,.08); color:#f5ddb0; font-size:13px;
     }
-
-    .move-button.sent {
-      border-color: var(--accent);
-      background: linear-gradient(180deg, rgba(78, 214, 154, 0.22), rgba(36, 83, 61, 0.86));
-      box-shadow: inset 0 0 0 1px rgba(78, 214, 154, 0.18), 0 12px 32px rgba(0, 0, 0, 0.28);
-    }
-
-    .wide {
-      grid-column: 1 / -1;
-    }
-
-    .readout {
-      color: var(--accent);
-      font-weight: 700;
-    }
-
-    .servo-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .control-stack {
-      display: grid;
-      gap: 14px;
-    }
-
-    .slider-card {
-      display: grid;
-      gap: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px;
-    }
-
-    .slider-card label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .servo-row {
-      display: grid;
-      grid-template-columns: 130px minmax(120px, 1fr) 54px;
-      gap: 12px;
-      align-items: center;
-      min-height: 38px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding-bottom: 9px;
-    }
-
-    .servo-row:last-child {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .servo-row span:first-child {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
     .log {
-      height: 190px;
-      overflow: auto;
-      background: rgba(8, 11, 14, 0.88);
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 12px;
-      color: #d3d9df;
-      font: 13px/1.45 Consolas, Monaco, monospace;
-      white-space: pre-wrap;
+      min-height:160px; max-height:230px; overflow:auto; white-space:pre-wrap;
+      padding:11px; border:1px solid var(--line); border-radius:6px;
+      background:#090c0f; font:12px/1.45 Consolas,monospace;
     }
-
-    .camera-panel {
-      display: grid;
-      grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
-      gap: 14px;
-      align-items: stretch;
-    }
-
-    .camera-view {
-      position: relative;
-      min-height: 300px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #080b0e;
-    }
-
-    .camera-view img {
-      width: 100%;
-      height: 100%;
-      min-height: 300px;
-      display: block;
-      object-fit: cover;
-    }
-
-    .camera-empty {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      color: var(--muted);
-      text-align: center;
-      padding: 20px;
-    }
-
-    .camera-controls {
-      display: grid;
-      gap: 12px;
-      align-content: start;
-    }
-
-    @media (max-width: 860px) {
-      .broker-grid,
-      .camera-panel,
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      header {
-        display: grid;
-        align-items: start;
-      }
-
-      .movement-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .servo-row {
-        grid-template-columns: 1fr;
-        gap: 6px;
-      }
-
-      .status {
-        width: 100%;
-      }
+    .camera { width:100%; min-height:280px; object-fit:contain; background:#090c0f }
+    @media(max-width:850px) {
+      .grid,.fields { grid-template-columns:1fr }
+      .wide { grid-column:auto }
+      .buttons { grid-template-columns:1fr 1fr }
+      header { align-items:flex-start; flex-direction:column }
+      .servo { grid-template-columns:1fr; gap:4px }
     }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div class="brand">
-        <h1>LISA Manual Control</h1>
-        <p class="subtitle">Raspberry Pi 2 / Master ESP32 / ESP32-C3</p>
-      </div>
-      <div id="status" class="status">Disconnected</div>
-    </header>
+<main>
+  <header>
+    <div>
+      <h1>LISA Control</h1>
+      <p class="muted">Pi 2 → MQTT → Master ESP32 → ESP32-C3</p>
+    </div>
+    <div id="status" class="status">Disconnected</div>
+  </header>
 
-    <section class="link-section">
-      <div class="section-head">
-        <h2>MQTT Link</h2>
-        <span class="pill">broker.emqx.io</span>
+  <section>
+    <div class="head"><h2>MQTT Link</h2><span class="muted">lisa/pi2/cmd</span></div>
+    <div class="fields">
+      <label>WebSocket URL<input id="broker" type="text" value="wss://broker.emqx.io:8084/mqtt"></label>
+      <label>Topic<input id="topic" type="text" value="lisa/pi2/cmd"></label>
+      <label>Client ID<input id="clientId" type="text"></label>
+      <button id="connect" class="primary">Connect</button>
+      <button id="disconnect" disabled>Disconnect</button>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section>
+      <div class="head"><h2>Movement</h2><span class="muted">Robot003 gait</span></div>
+      <div class="notice">Test walking while the robot is suspended first. Start at 20–30% speed.</div>
+      <div class="slider">
+        <div class="row"><span>Speed</span><span class="readout"><b id="speedValue">25</b>%</span></div>
+        <input id="speed" type="range" min="0" max="100" value="25">
       </div>
-      <div class="broker-grid">
-        <label>
-          Broker WebSocket URL
-          <input id="brokerUrl" type="text" value="wss://broker.emqx.io:8084/mqtt" autocomplete="off">
-        </label>
-        <label>
-          Topic
-          <input id="topic" type="text" value="lisa/pi2/cmd" autocomplete="off">
-        </label>
-        <label>
-          Client ID
-          <input id="clientId" type="text" autocomplete="off">
-        </label>
-        <button id="connectBtn" class="primary">Connect</button>
-        <button id="disconnectBtn" disabled>Disconnect</button>
+      <div class="slider">
+        <div class="row"><span>Track X</span><span class="readout"><b id="trackValue">0</b>%</span></div>
+        <input id="trackX" type="range" min="-100" max="100" value="0">
+      </div>
+      <div class="buttons">
+        <button data-drive="forward" class="primary">▲ Forward</button>
+        <button data-drive="backward" class="primary">▼ Backward</button>
+        <button data-drive="left" class="primary">◀ Left</button>
+        <button data-drive="right" class="primary">Right ▶</button>
+        <button data-move="dance">Dance</button>
+        <button data-move="wave">Wave</button>
+        <button data-move="bow">Bow</button>
+        <button data-move="hero">Hero</button>
+        <button id="emergency" class="danger">STOP / IDLE</button>
       </div>
     </section>
 
-    <div class="grid" style="margin-top: 14px;">
-      <section>
-        <div class="section-head">
-          <h2>Movement</h2>
-          <span class="pill">topic: lisa/pi2/cmd</span>
-        </div>
-        <div class="control-stack">
-          <div class="slider-card">
-            <label>
-              <span>Speed</span>
-              <span class="readout"><span id="speedValue">70</span>%</span>
-            </label>
-            <input id="speed" type="range" min="0" max="100" value="70">
-          </div>
-          <div class="slider-card">
-            <label>
-              <span>Track X</span>
-              <span class="readout"><span id="trackValue">0</span>%</span>
-            </label>
-            <input id="trackX" type="range" min="-100" max="100" value="0">
-          </div>
-          <div class="movement-grid">
-            <button data-move="walk" class="move-button primary">Walk<span>legs</span></button>
-            <button data-move="dance" class="move-button">Dance<span>motion</span></button>
-            <button data-move="wave" class="move-button">Wave<span>left arm</span></button>
-            <button data-move="bow" class="move-button">Bow<span>pose</span></button>
-            <button data-move="hero" class="move-button">Hero<span>pose</span></button>
-            <button data-move="idle" class="move-button danger">Stop<span>idle</span></button>
-          </div>
-          <button id="sendTrackBtn" class="soft">Send Track Only</button>
-        </div>
-      </section>
+    <section>
+      <div class="head"><h2>Servo Overrides</h2><span class="muted">15-second hold</span></div>
+      <div class="notice">
+        All leg joints use 90° neutral. “Clear override” sends plain idle so the
+        slave can reset fall protection. Use ±5° test buttons before full sliders.
+      </div>
+      <div id="servos" class="servo-list"></div>
+      <div class="buttons" style="margin-top:12px">
+        <button id="sendPose" class="primary">Send Pose</button>
+        <button id="centerPose">Set All Legs 90°</button>
+        <button id="clearOverride" class="danger">Clear Override</button>
+        <button id="testLeftHipDown">Left Hip −5°</button>
+        <button id="testLeftHipUp">Left Hip +5°</button>
+        <button id="openClaws">Open Claws</button>
+      </div>
+    </section>
 
-      <section>
-        <div class="section-head">
-          <h2>Upper Body Servos</h2>
-          <span class="pill">15s manual hold</span>
-        </div>
-        <div id="servoList" class="servo-list"></div>
-        <div class="movement-grid" style="margin-top: 14px;">
-          <button id="sendServosBtn" class="primary">Send Pose</button>
-          <button id="homeServosBtn">Home Pose</button>
-          <button id="openClawsBtn">Open Claws</button>
-        </div>
-      </section>
+    <section class="wide">
+      <div class="head"><h2>Camera</h2><span class="muted">Pi MJPEG stream</span></div>
+      <div class="fields" style="grid-template-columns:1fr auto auto">
+        <label>Stream URL<input id="cameraUrl" type="text" value="http://raspberrypi2.local:8090/camera.mjpg"></label>
+        <button id="startCamera">Start</button>
+        <button id="stopCamera">Stop</button>
+      </div>
+      <img id="camera" class="camera" alt="Camera not started">
+    </section>
 
-      <section class="wide">
-        <div class="section-head">
-          <h2>Camera Field</h2>
-          <span class="pill">Pi stream</span>
-        </div>
-        <div class="camera-panel">
-          <div class="camera-view">
-            <img id="cameraFeed" alt="">
-            <div id="cameraEmpty" class="camera-empty">Start the Pi camera stream to see LISA's view.</div>
-          </div>
-          <div class="camera-controls">
-            <label>
-              Camera Stream URL
-              <input id="cameraUrl" type="text" value="http://raspberrypi2.local:8090/camera.mjpg" autocomplete="off">
-            </label>
-            <button id="startCameraBtn" class="primary">Start Camera View</button>
-            <button id="stopCameraBtn">Stop Camera View</button>
-          </div>
-        </div>
-      </section>
+    <section class="wide">
+      <div class="head"><h2>Command Log</h2><button id="clearLog">Clear</button></div>
+      <div id="log" class="log"></div>
+    </section>
+  </div>
+</main>
 
-      <section class="wide">
-        <div class="section-head">
-          <h2>Command Log</h2>
-          <span class="pill">latest first</span>
-        </div>
-        <div id="log" class="log"></div>
-      </section>
-    </div>
-  </main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let client = null;
 
-  <script>
-    const statusEl = document.getElementById("status");
-    const logEl = document.getElementById("log");
-    const brokerUrlEl = document.getElementById("brokerUrl");
-    const topicEl = document.getElementById("topic");
-    const clientIdEl = document.getElementById("clientId");
-    const connectBtn = document.getElementById("connectBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
-    const speedEl = document.getElementById("speed");
-    const speedValueEl = document.getElementById("speedValue");
-    const trackXEl = document.getElementById("trackX");
-    const trackValueEl = document.getElementById("trackValue");
-    const servoListEl = document.getElementById("servoList");
-    const cameraUrlEl = document.getElementById("cameraUrl");
-    const cameraFeedEl = document.getElementById("cameraFeed");
-    const cameraEmptyEl = document.getElementById("cameraEmpty");
+  const servoConfig = {
+    neck:            {label:"Neck",           home:90, min:0,  max:180},
+    left_shoulder:   {label:"Left Shoulder",  home:90, min:0,  max:180},
+    left_elbow:      {label:"Left Elbow",     home:90, min:0,  max:180},
+    left_wrist:      {label:"Left Wrist",     home:90, min:0,  max:180},
+    left_claw:       {label:"Left Claw",      home:30, min:0,  max:180},
+    right_shoulder:  {label:"Right Shoulder", home:90, min:0,  max:180},
+    right_elbow:     {label:"Right Elbow",    home:90, min:0,  max:180},
+    right_wrist:     {label:"Right Wrist",    home:90, min:0,  max:180},
+    right_claw:      {label:"Right Claw",     home:30, min:0,  max:180},
+    left_hip:        {label:"Left Hip",       home:90, min:20, max:160, leg:true},
+    right_hip:       {label:"Right Hip",      home:90, min:20, max:160, leg:true},
+    left_knee:       {label:"Left Knee",      home:90, min:10, max:170, leg:true},
+    right_knee:      {label:"Right Knee",     home:90, min:10, max:170, leg:true},
+    left_ankle:      {label:"Left Ankle",     home:90, min:45, max:135, leg:true},
+    right_ankle:     {label:"Right Ankle",    home:90, min:45, max:135, leg:true}
+  };
 
-    const servoDefaults = {
-      neck: 90,
-      left_shoulder: 90,
-      left_elbow: 90,
-      left_wrist: 90,
-      left_claw: 30,
-      right_shoulder: 90,
-      right_elbow: 90,
-      right_wrist: 90,
-      right_claw: 30
+  const randomId = globalThis.crypto?.randomUUID
+    ? crypto.randomUUID().slice(0,8)
+    : Math.random().toString(16).slice(2,10);
+  $("clientId").value = `lisa-web-${randomId}`;
+
+  function log(text) {
+    $("log").textContent = `[${new Date().toLocaleTimeString()}] ${text}\n` + $("log").textContent;
+  }
+
+  function setConnected(online, text = online ? "Connected" : "Disconnected") {
+    $("status").textContent = text;
+    $("status").classList.toggle("online", online);
+    $("connect").disabled = online;
+    $("disconnect").disabled = !online;
+  }
+
+  function publish(payload) {
+    if (!client?.connected) {
+      log("Not connected—command was not sent.");
+      return false;
+    }
+    const message = JSON.stringify(payload);
+    client.publish($("topic").value.trim(), message, {qos:0, retain:false}, (error) => {
+      log(error ? `Publish failed: ${error.message}` : `TX ${message}`);
+    });
+    return true;
+  }
+
+  function connect() {
+    if (client?.connected) return;
+    setConnected(false, "Connecting");
+    client = mqtt.connect($("broker").value.trim(), {
+      clientId:$("clientId").value.trim(), clean:true,
+      connectTimeout:8000, reconnectPeriod:2000
+    });
+    client.on("connect", () => { setConnected(true); log("MQTT connected"); });
+    client.on("reconnect", () => setConnected(false, "Reconnecting"));
+    client.on("close", () => setConnected(false));
+    client.on("error", (error) => log(`MQTT error: ${error.message}`));
+  }
+
+  function stopAndIdle() {
+    $("speed").value = 0;
+    $("speedValue").textContent = 0;
+    $("trackX").value = 0;
+    $("trackValue").textContent = 0;
+    publish({move:"idle", speed:0, track_x:0});
+  }
+
+  function sendMove(move) {
+    publish({
+      move,
+      speed:Number($("speed").value),
+      track_x:Number($("trackX").value)
+    });
+  }
+
+  function pose() {
+    return Object.fromEntries(Object.keys(servoConfig).map((key) => [
+      key, Number($(`servo-${key}`).value)
+    ]));
+  }
+
+  function setServo(key, value) {
+    const config = servoConfig[key];
+    value = Math.max(config.min, Math.min(config.max, value));
+    $(`servo-${key}`).value = value;
+    $(`value-${key}`).textContent = value;
+  }
+
+  function setLegsTo90() {
+    Object.entries(servoConfig).forEach(([key, config]) => {
+      if (config.leg) setServo(key, 90);
+    });
+  }
+
+  function sendCommissioningTest(key, offset) {
+    setLegsTo90();
+    setServo(key, 90 + Math.max(-5, Math.min(5, offset)));
+    publish({move:"idle", speed:0, servos:pose()});
+  }
+
+  function buildServos() {
+    Object.entries(servoConfig).forEach(([key, config]) => {
+      const row = document.createElement("div");
+      row.className = "servo";
+      row.innerHTML = `
+        <span>${config.label}</span>
+        <input id="servo-${key}" type="range" min="${config.min}"
+          max="${config.max}" value="${config.home}">
+        <span class="readout"><b id="value-${key}">${config.home}</b>°</span>`;
+      $("servos").append(row);
+      row.querySelector("input").addEventListener("input", (event) => {
+        $(`value-${key}`).textContent = event.target.value;
+      });
+    });
+  }
+
+  $("connect").onclick = connect;
+  $("disconnect").onclick = () => { client?.end(true); setConnected(false); };
+  $("speed").oninput = () => $("speedValue").textContent = $("speed").value;
+  $("trackX").oninput = () => $("trackValue").textContent = $("trackX").value;
+  document.querySelectorAll("[data-move]").forEach((button) => {
+    button.onclick = () => sendMove(button.dataset.move);
+  });
+  document.querySelectorAll("[data-drive]").forEach((button) => {
+    const start = (event) => {
+      event.preventDefault();
+      button.setPointerCapture?.(event.pointerId);
+      sendMove(button.dataset.drive);
     };
-
-    const servoLabels = {
-      neck: "Neck",
-      left_shoulder: "Left Shoulder",
-      left_elbow: "Left Elbow",
-      left_wrist: "Left Wrist",
-      left_claw: "Left Claw",
-      right_shoulder: "Right Shoulder",
-      right_elbow: "Right Elbow",
-      right_wrist: "Right Wrist",
-      right_claw: "Right Claw"
+    const stop = (event) => {
+      event.preventDefault();
+      stopAndIdle();
     };
+    button.addEventListener("pointerdown", start);
+    button.addEventListener("pointerup", stop);
+    button.addEventListener("pointercancel", stop);
+    button.addEventListener("lostpointercapture", stop);
+  });
+  $("emergency").onclick = stopAndIdle;
+  $("clearOverride").onclick = stopAndIdle;
+  $("sendPose").onclick = () => publish({
+    move:"idle", speed:0, track_x:0, servos:pose()
+  });
+  $("centerPose").onclick = () => {
+    setLegsTo90();
+    publish({move:"idle", speed:0, track_x:0, servos:pose()});
+  };
+  $("testLeftHipDown").onclick = () => sendCommissioningTest("left_hip", -5);
+  $("testLeftHipUp").onclick = () => sendCommissioningTest("left_hip", 5);
+  $("openClaws").onclick = () => {
+    setServo("left_claw", 80); setServo("right_claw", 80);
+    publish({servos:{left_claw:80, right_claw:80}});
+  };
+  $("startCamera").onclick = () => {
+    const url = $("cameraUrl").value.trim();
+    $("camera").src = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+  };
+  $("stopCamera").onclick = () => $("camera").removeAttribute("src");
+  $("clearLog").onclick = () => $("log").textContent = "";
 
-    let client = null;
-
-    clientIdEl.value = `lisa-web-${Math.random().toString(16).slice(2, 8)}`;
-
-    function log(message) {
-      const time = new Date().toLocaleTimeString();
-      logEl.textContent = `[${time}] ${message}\n${logEl.textContent}`;
+  window.addEventListener("keydown", (event) => {
+    if (event.target.matches("input")) return;
+    if (event.repeat) return;
+    if (event.code === "ArrowUp") sendMove("forward");
+    if (event.code === "ArrowDown") sendMove("backward");
+    if (event.code === "ArrowLeft") sendMove("left");
+    if (event.code === "ArrowRight") sendMove("right");
+    if (event.code === "Space") { event.preventDefault(); stopAndIdle(); }
+  });
+  window.addEventListener("keyup", (event) => {
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.code)) {
+      stopAndIdle();
     }
+  });
 
-    function setStatus(text, online) {
-      statusEl.textContent = text;
-      statusEl.classList.toggle("online", online);
-      connectBtn.disabled = online;
-      disconnectBtn.disabled = !online;
-    }
-
-    function publish(payload) {
-      if (!client || !client.connected) {
-        log("Not connected. Connect to MQTT first.");
-        return;
-      }
-      const topic = topicEl.value.trim();
-      const message = JSON.stringify(payload);
-      client.publish(topic, message, { qos: 0, retain: false }, (error) => {
-        if (error) {
-          log(`Publish failed: ${error.message}`);
-          return;
-        }
-        log(`${topic} -> ${message}`);
-      });
-    }
-
-    function connectMqtt() {
-      if (client && client.connected) {
-        return;
-      }
-
-      const url = brokerUrlEl.value.trim();
-      const clientId = clientIdEl.value.trim() || `lisa-web-${Date.now()}`;
-      setStatus("Connecting", false);
-      log(`Connecting to ${url}`);
-
-      client = mqtt.connect(url, {
-        clientId,
-        clean: true,
-        connectTimeout: 8000,
-        reconnectPeriod: 2000
-      });
-
-      client.on("connect", () => {
-        setStatus("Connected", true);
-        log("MQTT connected.");
-      });
-
-      client.on("reconnect", () => {
-        setStatus("Reconnecting", false);
-      });
-
-      client.on("close", () => {
-        setStatus("Disconnected", false);
-      });
-
-      client.on("error", (error) => {
-        log(`MQTT error: ${error.message}`);
-      });
-    }
-
-    function disconnectMqtt() {
-      if (client) {
-        client.end(true);
-      }
-      setStatus("Disconnected", false);
-      log("MQTT disconnected.");
-    }
-
-    function sendMove(move) {
-      const speed = move === "idle" ? 0 : Number(speedEl.value);
-      document.querySelectorAll("[data-move]").forEach((button) => {
-        button.classList.toggle("sent", button.dataset.move === move);
-      });
-      publish({
-        move,
-        speed,
-        track_x: Number(trackXEl.value)
-      });
-    }
-
-    function currentServoPose() {
-      const pose = {};
-      Object.keys(servoDefaults).forEach((key) => {
-        pose[key] = Number(document.getElementById(`servo-${key}`).value);
-      });
-      return pose;
-    }
-
-    function sendServoPose() {
-      publish({ servos: currentServoPose() });
-    }
-
-    function setServoPose(pose) {
-      Object.keys(servoDefaults).forEach((key) => {
-        const value = pose[key] ?? servoDefaults[key];
-        const input = document.getElementById(`servo-${key}`);
-        const readout = document.getElementById(`servo-value-${key}`);
-        input.value = value;
-        readout.textContent = value;
-      });
-    }
-
-    function startCameraView() {
-      const url = cameraUrlEl.value.trim();
-      if (!url) {
-        log("Camera URL is empty.");
-        return;
-      }
-      cameraFeedEl.src = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
-      cameraEmptyEl.style.display = "none";
-      log(`Camera view opened: ${url}`);
-    }
-
-    function stopCameraView() {
-      cameraFeedEl.removeAttribute("src");
-      cameraEmptyEl.style.display = "grid";
-      log("Camera view stopped.");
-    }
-
-    function buildServoControls() {
-      Object.keys(servoDefaults).forEach((key) => {
-        const row = document.createElement("div");
-        row.className = "servo-row";
-        row.innerHTML = `
-          <span>${servoLabels[key]}</span>
-          <input id="servo-${key}" type="range" min="0" max="180" value="${servoDefaults[key]}">
-          <span class="readout"><span id="servo-value-${key}">${servoDefaults[key]}</span>&deg;</span>
-        `;
-        servoListEl.appendChild(row);
-
-        const input = row.querySelector("input");
-        input.addEventListener("input", () => {
-          document.getElementById(`servo-value-${key}`).textContent = input.value;
-        });
-      });
-    }
-
-    connectBtn.addEventListener("click", connectMqtt);
-    disconnectBtn.addEventListener("click", disconnectMqtt);
-
-    speedEl.addEventListener("input", () => {
-      speedValueEl.textContent = speedEl.value;
-    });
-
-    trackXEl.addEventListener("input", () => {
-      trackValueEl.textContent = trackXEl.value;
-    });
-
-    document.querySelectorAll("[data-move]").forEach((button) => {
-      button.addEventListener("click", () => sendMove(button.dataset.move));
-    });
-
-    document.getElementById("sendTrackBtn").addEventListener("click", () => {
-      publish({ track_x: Number(trackXEl.value) });
-    });
-
-    document.getElementById("sendServosBtn").addEventListener("click", sendServoPose);
-    document.getElementById("startCameraBtn").addEventListener("click", startCameraView);
-    document.getElementById("stopCameraBtn").addEventListener("click", stopCameraView);
-    document.getElementById("homeServosBtn").addEventListener("click", () => {
-      setServoPose(servoDefaults);
-      sendServoPose();
-    });
-    document.getElementById("openClawsBtn").addEventListener("click", () => {
-      setServoPose({ ...currentServoPose(), left_claw: 80, right_claw: 80 });
-      sendServoPose();
-    });
-
-    window.addEventListener("keydown", (event) => {
-      if (event.target.tagName === "INPUT") {
-        return;
-      }
-      if (event.code === "ArrowUp") sendMove("walk");
-      if (event.code === "ArrowLeft") {
-        trackXEl.value = Math.max(-100, Number(trackXEl.value) - 15);
-        trackValueEl.textContent = trackXEl.value;
-        publish({ track_x: Number(trackXEl.value) });
-      }
-      if (event.code === "ArrowRight") {
-        trackXEl.value = Math.min(100, Number(trackXEl.value) + 15);
-        trackValueEl.textContent = trackXEl.value;
-        publish({ track_x: Number(trackXEl.value) });
-      }
-      if (event.code === "Space") {
-        event.preventDefault();
-        sendMove("idle");
-      }
-    });
-
-    buildServoControls();
-    setStatus("Disconnected", false);
-  </script>
+  buildServos();
+  setConnected(false);
+</script>
 </body>
 </html>
